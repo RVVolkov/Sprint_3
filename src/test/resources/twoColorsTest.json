@@ -1,0 +1,13 @@
+{
+    "firstName": "Семен",
+    "lastName": "Семенов",
+    "address": "Ленина 10-10",
+    "metroStation": "Библиотека имени Ленина",
+    "phone": "+79217894561",
+    "rentTime": 5,
+    "deliveryDate": "2022-07-07",
+    "comment": "с 10 до 20",
+    "color": [
+        "BLACK", "GREY"
+    ]
+}

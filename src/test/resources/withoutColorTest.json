@@ -1,0 +1,10 @@
+{
+    "firstName": "Петр",
+    "lastName": "Петров",
+    "address": "Ленина 88-99",
+    "metroStation": "Ленинский проспект",
+    "phone": "+79521478520",
+    "rentTime": 6,
+    "deliveryDate": "2022-07-07",
+    "comment": "с 10 до 13"
+}
