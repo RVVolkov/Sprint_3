@@ -1,27 +1,37 @@
 import io.qameta.allure.Description;
 import io.qameta.allure.junit4.DisplayName;
-import org.junit.Assert;
+import io.restassured.response.ValidatableResponse;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import java.io.File;
-import static io.restassured.RestAssured.given;
+
+import java.util.List;
+
 import static org.hamcrest.Matchers.notNullValue;
 
 @RunWith(Parameterized.class)
 public class OrderCreationTests extends BaseClass {
-    private static File json;
+    private Order order;
+    private OrderBaseStep orderBaseStep;
+    private final List<String> color;
 
-    public OrderCreationTests(File json) {
-        this.json = json;
+    @Before
+    public void setUp() {
+        order = Order.getRandomOrder(color);
+        orderBaseStep = new OrderBaseStep();
     }
 
-    @Parameterized.Parameters
-    public static Object[][] getJsonFile() {
+    public OrderCreationTests(List<String> color) {
+        this.color = color;
+    }
+
+    @Parameterized.Parameters(name = "Цвет самоката: {0}")
+    public static Object[][] createOrder() {
         return new Object[][]{
-                {json = new File("src/test/resources/anyColorTest.json")},
-                {json = new File("src/test/resources/twoColorsTest.json")},
-                {json = new File("src/test/resources/withoutColorTest.json")},
+                {List.of("BLACK")},
+                {List.of("BLACK", "GREY")},
+                {List.of()},
         };
     }
 
@@ -29,23 +39,10 @@ public class OrderCreationTests extends BaseClass {
     @DisplayName("Создание заказов с разными цветами самокатов")
     @Description("Проверка, что возвращается код 201 и трек номер")
     public void orderTests() {
-        //Создаю заказ и получаю его трек номер
-        int trackId = given()
-                .spec(getBaseSpec())
-                .body(json)
-                .when()
-                .post(Endpoints.ORDER_CREATION.endpoint)
-                .then().assertThat().body("track", notNullValue())
-                .and().statusCode(201)
-                .extract().body().path("track");
-        //Удаляю созданные заказы
-        boolean actual = given()
-                .spec(getBaseSpec())
-                .when()
-                .put(Endpoints.CANCEL_ORDER.endpoint, trackId)
-                .then().statusCode(200)
-                .extract().body().path("ok");
-        boolean expected = true;
-        Assert.assertEquals(expected, actual);
+        ValidatableResponse response = orderBaseStep.createOrder(order)
+                .assertThat().body("track", notNullValue())
+                .and().statusCode(201);
+        int trackId = response.extract().body().path("track");
+        orderBaseStep.cancelOrder(trackId);
     }
 }

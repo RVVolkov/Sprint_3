@@ -1,108 +1,71 @@
 import io.qameta.allure.Description;
 import io.qameta.allure.junit4.DisplayName;
-import io.restassured.RestAssured;
+import io.restassured.response.ValidatableResponse;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import java.io.File;
+
+import java.util.List;
+
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.notNullValue;
 
 public class OrderListTests extends BaseClass {
     private CreatingCourier courier;
-    File json = new File("src/test/resources/anyColorTest.json");
-
+    private CourierBaseSteps courierBaseSteps;
+    private Order order;
+    private OrderBaseStep orderBaseStep;
+    private List<String> color;
 
     @Before
     public void setUp() {
         courier = CreatingCourier.getRandomCourier();
+        courierBaseSteps = new CourierBaseSteps();
+        courierBaseSteps.creatingCourier(courier);
+        order = Order.getRandomOrder(color);
+        orderBaseStep = new OrderBaseStep();
     }
 
     @Test
     @DisplayName("Получение списка заказов")
     @Description("Проверка, что возвращается код 200 и не пустое тело ответа")
     public void getOrderListTest() {
-        //Создаю курьера
-        RestAssured.given()
-                .spec(getBaseSpec())
-                .body(courier)
-                .when()
-                .post(Endpoints.CREATING_COURIER.endpoint)
-                .then().statusCode(201);
-        //Получаю его id
-        int courierId = given()
-                .spec(getBaseSpec())
-                .body(courier)
-                .post(Endpoints.LOGIN_COURIER.endpoint)
-                .then().statusCode(200)
-                .extract().body().path("id");
-        //Создаю заказ и получаю его trackid
-        int trackId = given()
-                .spec(getBaseSpec())
-                .body(json)
-                .when()
-                .post(Endpoints.ORDER_CREATION.endpoint)
-                .then().extract().body().path("track");
-        //Получаю id заказа по трек номеру
-        String response = given()
+        LoginCourier credentials = LoginCourier.from(courier);
+        ValidatableResponse loginCourier = courierBaseSteps.loginCourier(credentials);
+        int courierId = loginCourier.extract().body().path("id");
+        ValidatableResponse createOrder = orderBaseStep.createOrder(order);
+        int trackId = createOrder.extract().body().path("track");
+        int orderId = given()
                 .spec(getBaseSpec())
                 .when()
-                .get(Endpoints.ORDER_TRACK.endpoint, trackId)
-                .then().extract().body().asString().substring(15, 20);
-        int id = Integer.parseInt(response);
-        //Принимаю заказ
-        RestAssured.given()
+                .queryParam("t", trackId)
+                .get(Endpoints.ORDER_TRACK.endpoint)
+                .then().extract().body().path("order.id");
+        ValidatableResponse acceptOrder = given()
                 .spec(getBaseSpec())
                 .when()
-                .put(Endpoints.ORDER_ACCEPT.endpoint, id, courierId)
+                .pathParam("id", orderId)
+                .queryParam("courierId", courierId)
+                .put(Endpoints.ORDER_ACCEPT.endpoint)
                 .then().statusCode(200);
-        //Получаю список заказов
-        RestAssured.given()
-                .spec(getBaseSpec())
-                .when()
-                .get(Endpoints.ORDER_LIST.endpoint, courierId)
-                .then().statusCode(200)
-                .and().body(notNullValue());
-        //Удаляю курьера
-        RestAssured.given()
-                .spec(getBaseSpec())
-                .when()
-                .delete(Endpoints.DELETE_COURIER.endpoint, courierId)
-                .then().statusCode(200);
+        ValidatableResponse orderList = orderBaseStep.listOfOrder(courierId)
+                .statusCode(200).and().body(notNullValue());
+        courierBaseSteps.deleteCourier(courierId);
     }
 
     @Test
     @DisplayName("Запрос с несуществующим courierId")
     @Description("Проверка, что возвращается код 404 и текст ошибки")
     public void getOrderListWithNonexistentCourierId() {
-        //Создаю курьера
-        RestAssured.given()
-                .spec(getBaseSpec())
-                .body(courier)
-                .when()
-                .post(Endpoints.CREATING_COURIER.endpoint)
-                .then().statusCode(201);
-        //Получаю его id
-        int courierId = given()
-                .spec(getBaseSpec())
-                .body(courier)
-                .post(Endpoints.LOGIN_COURIER.endpoint)
-                .then().statusCode(200)
-                .extract().body().path("id");
-        //Удаляю курьера
-        RestAssured.given()
-                .spec(getBaseSpec())
-                .when()
-                .delete(Endpoints.DELETE_COURIER.endpoint, courierId)
-                .then().statusCode(200);
-        //Попытка получить список заказов
-        String actual = given()
-                .spec(getBaseSpec())
-                .when()
-                .get(Endpoints.ORDER_LIST.endpoint, courierId)
-                .then().statusCode(404)
+        LoginCourier credentials = LoginCourier.from(courier);
+        ValidatableResponse loginCourier = courierBaseSteps.loginCourier(credentials);
+        int courierId = loginCourier.extract().body().path("id");
+        courierBaseSteps.deleteCourier(courierId);
+        ValidatableResponse orderList = orderBaseStep.listOfOrder(courierId);
+        String actual = orderList.statusCode(404)
                 .extract().body().path("message");
         String expected = "Курьер с идентификатором " + courierId + " не найден";
         Assert.assertEquals(expected, actual);
     }
+
 }

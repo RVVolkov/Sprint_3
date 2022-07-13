@@ -1,5 +1,3 @@
-import org.apache.commons.lang3.RandomStringUtils;
-
 public class LoginCourier {
     private String login;
     private String password;
@@ -12,16 +10,13 @@ public class LoginCourier {
         this.password = password;
     }
 
-    public static LoginCourier getRandomCourierCredentials() {
-        final String login = RandomStringUtils.randomAlphabetic(5);
-        final String password = RandomStringUtils.randomNumeric(5);
-        return new LoginCourier(login, password);
+    public LoginCourier(CreatingCourier courier) {
+        this.login = courier.getLogin();
+        this.password = courier.getPassword();
     }
 
-    public static LoginCourier getRandomCourierWithoutLogin() {
-        final String login = RandomStringUtils.randomAlphabetic(5);
-        final String password = RandomStringUtils.randomNumeric(5);
-        return new LoginCourier("", password);
+    public static LoginCourier from(CreatingCourier courier) {
+        return new LoginCourier(courier);
     }
 
     public String getLogin() {

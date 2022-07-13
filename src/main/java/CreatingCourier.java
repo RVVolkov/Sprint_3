@@ -1,12 +1,14 @@
-import org.apache.commons.lang3.RandomStringUtils;
+import com.github.javafaker.Faker;
 
 public class CreatingCourier {
     private String login;
     private String password;
     private String firstName;
+    public static Faker faker = new Faker();
 
     public CreatingCourier() {
     }
+
     public CreatingCourier(String login, String password, String firstName) {
         this.login = login;
         this.password = password;
@@ -15,16 +17,17 @@ public class CreatingCourier {
 
 
     public static CreatingCourier getRandomCourier() {
-        final String login = RandomStringUtils.randomAlphabetic(5);
-        final String password = RandomStringUtils.randomNumeric(5);
-        final String firstName = RandomStringUtils.randomAlphabetic(8);
+        final String login = faker.internet().domainName();
+        ;
+        final String password = faker.internet().password();
+        final String firstName = faker.name().firstName();
         return new CreatingCourier(login, password, firstName);
     }
 
     public static CreatingCourier getCourierWithoutLogin() {
-        final String login;
-        final String password = RandomStringUtils.randomNumeric(5);
-        final String firstName = RandomStringUtils.randomAlphabetic(8);
+        final String login = faker.internet().domainName();
+        final String password = faker.internet().password();
+        final String firstName = faker.name().firstName();
         return new CreatingCourier("", password, firstName);
     }
 
